@@ -21,18 +21,21 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: jekyll/jekyll:4
-      # Run as root so the container can write into the GitHub workspace
       options: --user root
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Fix permissions so Jekyll can write cache/output
       - name: Fix workspace permissions
-        run: |
-          chmod -R 777 .
+        run: chmod -R 777 .
 
-      # Optional – only if you have a Gemfile / plugins
+      # Install GNU tar (needed by upload-pages-artifact, BusyBox tar breaks it)
+      - name: Install GNU tar
+        run: apk add --no-cache tar
+
+      # Optional – only if you have Gemfile / plugins
       - name: Install dependencies
         run: |
           if [ -f Gemfile ]; then
@@ -41,7 +44,6 @@ jobs:
 
       - name: Build Jekyll site
         run: |
-          # create cache dir explicitly so it's writable
           mkdir -p .jekyll-cache
           jekyll build -d ./_site
 
