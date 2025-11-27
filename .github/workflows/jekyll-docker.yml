@@ -1,0 +1,55 @@
+name: Build and Deploy Jekyll (Docker)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site with Jekyll (Docker)
+    runs-on: ubuntu-latest
+    container:
+      image: jekyll/jekyll:4
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # If you have a Gemfile, Jekyll plugins, etc.
+      - name: Install dependencies
+        run: |
+          if [ -f Gemfile ]; then
+            bundle install
+          fi
+
+      - name: Build Jekyll site
+        run: |
+          jekyll build -d ./_site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
